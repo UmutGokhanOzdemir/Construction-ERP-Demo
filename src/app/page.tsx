@@ -1,101 +1,138 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import useSWR from "swr";
+import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TenantSwitcher } from "@/components/layout/TenantSwitcher";
+import { Plus, LogOut, MapPin, Calendar, Briefcase, Receipt } from "lucide-react";
+import type { Project } from "@/types";
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  Planning: { label: "Planlama", color: "bg-slate-100 text-slate-700" },
+  Active: { label: "Aktif", color: "bg-green-100 text-green-700" },
+  Completed: { label: "Tamamlandı", color: "bg-blue-100 text-blue-700" },
+  Cancelled: { label: "İptal", color: "bg-red-100 text-red-700" },
+};
+
+export default function ProjectsListPage() {
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const { canCreateProjects } = usePermissions();
+  const { data: projects, isLoading } = useSWR<Project[]>(user ? "/projects" : null);
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2">
+              <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+                <rect x="6" y="16" width="10" height="18" rx="2" fill="#2563EB" />
+                <rect x="20" y="8" width="10" height="26" rx="2" fill="#2563EB" />
+                <path d="M11 16L25 8" stroke="#F97316" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="25" cy="8" r="3" fill="#F97316" />
+                <circle cx="11" cy="16" r="2" fill="#F97316" />
+              </svg>
+              <span className="font-bold text-xl text-slate-900">Construction ERP</span>
+            </Link>
+            {user.isSuperAdmin && <TenantSwitcher />}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-right leading-tight">
+              <div className="font-medium text-slate-900">{user.firstName ?? user.username}</div>
+              <div className="text-xs text-slate-500">{user.tenantName ?? user.role}</div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={logout} className="text-red-500 hover:bg-red-50">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Projeler</h1>
+            <p className="text-sm text-slate-500 mt-1">Sözleşmeli şantiye projelerinizi yönetin</p>
+          </div>
+          {canCreateProjects && (
+            <Link href="/projects/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni Proje
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-12 text-slate-500">Yükleniyor...</div>
+        ) : !projects || projects.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12 text-slate-500">
+              <Briefcase className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+              <p>Henüz proje yok.</p>
+              {canCreateProjects && (
+                <Link href="/projects/new">
+                  <Button variant="outline" className="mt-4">İlk Projeni Oluştur</Button>
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project) => {
+              const status = STATUS_LABELS[project.status] ?? STATUS_LABELS.Planning;
+              return (
+                <Link key={project.id} href={`/projects/${project.id}/dashboard`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-xs font-mono text-slate-500">{project.code}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.color}`}>{status.label}</span>
+                      </div>
+                      <CardTitle className="text-base leading-snug">{project.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-slate-600">
+                      {project.city && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{project.city}</span>
+                        </div>
+                      )}
+                      {project.startDate && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{formatDate(project.startDate)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Receipt className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{project.productionRecordCount ?? 0} üretim kaydı</span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                        <span className="text-xs text-slate-500">Sözleşme</span>
+                        <span className="font-semibold text-slate-900">{formatCurrency(project.contractAmount, project.currency)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
