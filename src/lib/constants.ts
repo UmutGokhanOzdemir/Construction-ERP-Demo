@@ -6,15 +6,15 @@ export const SUPER_ADMIN_TENANT_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
 export const DEMO_ACCOUNTS = [
   {
-    label: "AYAŞ İnşaat Admin",
+    label: "Test Yapım Admin",
     description: "Tam yetkili tenant yöneticisi",
-    username: "admin@ayas.com",
+    username: "admin@test.com",
     password: "Demo123!",
     color: "#2563eb",
   },
   {
     label: "ERK İnşaat Admin",
-    description: "Farklı tenant — izolasyonu gösterir",
+    description: "Tam yetkili tenant yöneticisi",
     username: "admin@erk.com",
     password: "Demo123!",
     color: "#dc2626",
